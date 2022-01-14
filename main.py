@@ -1,8 +1,10 @@
+import os
 import re
 import urllib
 
 import requests as requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 
 
 def main(
@@ -87,5 +89,16 @@ def build_url(base_url: str, path: str, args_dict: dict = {}):
     return urllib.parse.urlunparse(url_parts)
 
 
-if __name__ == '__main__':
-    main("username", "password", "https://learn.fmi.uni-sofia.bg/", 7473, "(З|з)аписване за ")
+if __name__ == "__main__":
+    load_dotenv()
+
+    USERNAME = os.getenv("MCHAF_USERNAME")
+    PASSWORD = os.getenv("MCHAF_PASSWORD")
+    MOODLE_DOMAIN = os.getenv("MCHAF_MOODLE_DOMAIN")
+    COURSE_ID = os.getenv("MCHAF_COURSE_ID")
+    CHOICE_TITLE_REGEX = os.getenv("MCHAF_CHOICE_TITLE_REGEX")
+
+    if not USERNAME or not PASSWORD or not MOODLE_DOMAIN or not COURSE_ID or not CHOICE_TITLE_REGEX:
+        exit(-1)
+
+    main(USERNAME, PASSWORD, MOODLE_DOMAIN, COURSE_ID, CHOICE_TITLE_REGEX)
