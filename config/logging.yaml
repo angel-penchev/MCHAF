@@ -1,0 +1,24 @@
+version: 1
+formatters:
+  brief:
+    format: '%(message)s'
+  default:
+    format: '[%(asctime)s] %(levelname)s : %(message)s'
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: brief
+    level: INFO
+    stream: ext://sys.stdout
+  file:
+    class: logging.handlers.RotatingFileHandler
+    formatter: default
+    level: INFO
+    filename: mchaf.log
+loggers:
+  mainLogger:
+    level: INFO
+    handlers: [ console, file ]
+root:
+  level: INFO
+  handlers: [ console, file ]

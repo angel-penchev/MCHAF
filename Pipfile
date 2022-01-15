@@ -10,6 +10,7 @@ python-dotenv = "*"
 plyer = "*"
 notify2 = "*"
 dbus-python = "*"
+pyyaml = "*"
 
 [dev-packages]
 

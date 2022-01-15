@@ -1,5 +1,6 @@
 import argparse
-import logging
+import yaml
+import logging.config
 import os
 from time import sleep
 
@@ -26,6 +27,10 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--interval", type=int, help="interval in minutes between checks")
     args = parser.parse_args()
 
+    with open('./config/logging.yaml', 'r') as stream:
+        config = yaml.load(stream, Loader=yaml.FullLoader)
+    logging.config.dictConfig(config)
+
     load_dotenv()
 
     USERNAME = args.username or os.getenv("MCHAF_USERNAME")
@@ -38,13 +43,29 @@ if __name__ == "__main__":
     INTERVAL = int(args.interval or os.getenv("MCHAF_INTERVAL") or 15) * 60
 
     if not USERNAME or not PASSWORD or not MOODLE_DOMAIN or not COURSE_ID or not CHOICE_TITLE_REGEX:
-        e = AssertionError('Insufficient initialization parameters supplied.')
-        logging.exception(e)
-        raise e
+        error = AssertionError('Insufficient initialization parameters supplied.')
+        logging.exception(error)
+        raise error
 
+    logging.info("""Application initialized with
+        username: %s,
+        moodle domain: %s,
+        course id: %s,
+        choice title regex: %s,
+        notification level: %s,
+        run once: %s,
+        interval: %s.""",
+        USERNAME, MOODLE_DOMAIN, COURSE_ID, CHOICE_TITLE_REGEX, NOTIFICATION_LEVEL, RUN_ONCE, INTERVAL
+    )
     app = MCHAF(USERNAME, PASSWORD, MOODLE_DOMAIN, COURSE_ID, CHOICE_TITLE_REGEX, NOTIFICATION_LEVEL)
+
+    logging.info("[START] Moodle Choice Auto-filler.")
     app.run()
+    logging.info("[END] Moodle Choice Auto-filler.")
 
     while not RUN_ONCE:
+        logging.info("Sleeping for %s seconds.", INTERVAL)
         sleep(INTERVAL)
+        logging.info("[START] Moodle Choice Auto-filler.")
         app.run()
+        logging.info("[END] Moodle Choice Auto-filler.")

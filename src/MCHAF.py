@@ -10,9 +10,9 @@ from src.utils import Utils
 
 class MCHAF:
     class ChoiceFormResult(Enum):
-        FormClosed = "Form was already filled or closed."
-        FormFilled = "Form was filled successfully."
-        FormMultipleChoice = "Form had more than one answer, so it was not filled."
+        FormClosed = "form were already filled or closed"
+        FormFilled = "form were filled successfully"
+        FormMultipleChoice = "forms had more than one answer, thus were not filled"
 
     def __init__(
             self,
@@ -44,14 +44,43 @@ class MCHAF:
             logging.info("[END] Assigment loading for course: %s. Loaded: %d.", self.course_id, len(assignments))
 
             # Fill the form for each choice assigment that matches title regex
+            logging.info(
+                "[START] Processing for choice assignments for user %s in course: %s.", self.username, self.course_id
+            )
             processing_results = []
             for assignment in assignments:
                 if "Choice" in assignment.text or "Избор" in assignment.text:
                     assignment_title = assignment.text[:assignment.text.rfind(' ')]
+                    logging.info(
+                        "Assignment title: \"%s\" %s the regex: r\"%s\"",
+                        assignment_title,
+                        "matches" if re.match(self.choice_title_regex, assignment_title) else "doesn't match",
+                        self.choice_title_regex
+                    )
                     if re.match(self.choice_title_regex, assignment_title):
+                        logging.info(
+                            "[START] Processing for assignment with name: %s in course %s",
+                            assignment_title, self.course_id
+                        )
                         processing_results.append(self.process_choice_form(assignment.parent['href']))
+                        logging.info(
+                            "[END] Processing for assignment with name: %s in course %s",
+                            assignment_title, self.course_id
+                        )
+            logging.info(
+                "[END] Processing for choice assignments for user %s in course: %s. %s %s. %s %s. %s %s.",
+                self.username, self.course_id,
+                processing_results.count(self.ChoiceFormResult.FormMultipleChoice),
+                self.ChoiceFormResult.FormMultipleChoice.value,
+                processing_results.count(self.ChoiceFormResult.FormFilled),
+                self.ChoiceFormResult.FormFilled.value,
+                processing_results.count(self.ChoiceFormResult.FormClosed),
+                self.ChoiceFormResult.FormClosed.value
+            )
 
+            logging.info("[START] Notification sending for user: %s in course: %s.", self.username, self.course_id)
             if processing_results.count(self.ChoiceFormResult.FormMultipleChoice) and self.notification_level >= 1:
+                logging.info("Sending notification about filled forms.")
                 Utils.send_notification(
                     "Unfilled forms found in course {}".format(self.course_id),
                     "While searching, {} choice forms {} found which contain more than one answer.".format(
@@ -61,6 +90,7 @@ class MCHAF:
                 )
 
             if processing_results.count(self.ChoiceFormResult.FormFilled) and self.notification_level >= 2:
+                logging.info("Sending notification about filled forms.")
                 Utils.send_notification(
                     "Successfully filled forms in course {}".format(self.course_id),
                     "While searching, {} single-answer choice forms {} found and successfully filled.".format(
@@ -70,6 +100,7 @@ class MCHAF:
                 )
 
             if processing_results.count(self.ChoiceFormResult.FormClosed) and self.notification_level >= 3:
+                logging.info("Sending notification about closed forms.")
                 Utils.send_notification(
                     "Closed forms in course {}".format(self.course_id),
                     "While searching, {} closed/already filled choice forms were {} found.".format(
@@ -77,56 +108,103 @@ class MCHAF:
                         'was' if processing_results.count(self.ChoiceFormResult.FormClosed) == 1 else "were"
                     )
                 )
+            logging.info("[END] Notification sending for user: %s in course: %s.", self.username, self.course_id)
 
     def authenticate_session(self):
-        # Get login token from page
-        # As described here: https://docs.moodle.org/dev/Login_token the moodle login requires it since mid 2017.
-        get_login_res = self.session.get(Utils.build_url(self.moodle_domain, "/login/index.php"))
-        get_login_soup = BeautifulSoup(get_login_res.text, "html.parser")
-        logintoken = get_login_soup.find("input", {"name": "logintoken"})["value"]
+        try:
+            # Get login token from page
+            # As described here: https://docs.moodle.org/dev/Login_token, the moodle login requires it since mid 2017.
+            logging.info("Requesting login page.")
+            get_login_res = self.session.get(Utils.build_url(self.moodle_domain, "/login/index.php"))
+            get_login_res.raise_for_status()
+            get_login_soup = BeautifulSoup(get_login_res.text, "html.parser")
 
-        # Submit login form with credentials
-        auth_payload: dict = {
-            "username": self.username,
-            "password": self.password,
-            "logintoken": logintoken
-        }
-        self.session.post(Utils.build_url(self.moodle_domain, "/login/index.php"), auth_payload)
+            logging.info("Getting logintoken from login page.")
+            logintoken_element = get_login_soup.find("input", {"name": "logintoken"})
+            if not logintoken_element:
+                raise ValueError("\"logintoken\" was not found in login page.")
+            logintoken = logintoken_element["value"]
+
+            # Submit login form with credentials
+            logging.info("Logging in for user: %s with logintoken: %s.", self.username, logintoken)
+            auth_payload: dict = {
+                "username": self.username,
+                "password": self.password,
+                "logintoken": logintoken
+            }
+            post_login_res = self.session.post(Utils.build_url(self.moodle_domain, "/login/index.php"), auth_payload)
+            post_login_res.raise_for_status()
+            post_login_soup = BeautifulSoup(post_login_res.text, "html.parser")
+            if post_login_soup.find("a", {"id": "loginerrormessage"}):
+                raise ValueError("Invalid username or password.")
+        except Exception as error:
+            logging.exception(error)
+            raise error
+        else:
+            logging.info("Successfully authenticated for user: %s.", self.username)
 
     def get_course_assignments(self):
-        # Get all assignments from the course page
-        get_course_res = self.session.get(
-            Utils.build_url(self.moodle_domain, "/course/view.php", {"id": self.course_id})
-        )
-        get_login_soup = BeautifulSoup(get_course_res.text, "html.parser")
-        return get_login_soup.find_all("span", {"class": "instancename"})
+        try:
+            # Get all assignments from the course page
+            logging.info("Requesting page for course: %s.", self.course_id)
+            get_course_res = self.session.get(
+                Utils.build_url(self.moodle_domain, "/course/view.php", {"id": self.course_id})
+            )
+            get_course_res.raise_for_status()
+
+            logging.info("Gathering all assignments for course: %s.", self.course_id)
+            get_login_soup = BeautifulSoup(get_course_res.text, "html.parser")
+            return get_login_soup.find_all("span", {"class": "instancename"})
+        except Exception as error:
+            logging.exception(error)
+            raise error
+        else:
+            logging.info("Successfully loaded assignments in course: %s.", self.course_id)
 
     def process_choice_form(self, assignment_url: str):
-        # Get multiple choice page
-        get_assignment_res = self.session.get(assignment_url)
-        get_assignment_soup = BeautifulSoup(get_assignment_res.text, "html.parser")
-        answers = get_assignment_soup.find_all("input", {"name": "answer"})
+        try:
+            # Get multiple choice page
+            logging.info("Requesting multiple choice page: %s.", assignment_url)
+            get_assignment_res = self.session.get(assignment_url)
+            get_assignment_res.raise_for_status()
 
-        # If there are no answers to select => the questionare has already been filled / is closed
-        if not len(answers):
-            return self.ChoiceFormResult.FormClosed
+            # Get all answers on page
+            logging.info("Getting answers from assignment page: %s.", assignment_url)
+            get_assignment_soup = BeautifulSoup(get_assignment_res.text, "html.parser")
+            answers = get_assignment_soup.find_all("input", {"name": "answer"})
+            logging.info("Found %s answers on page: %s.", len(answers), assignment_url)
 
-        # There are more than one choice => notify without filling the form
-        if len(answers) >= 1:
-            return self.ChoiceFormResult.FormMultipleChoice
+            # If there are no answers to select => the questionare has already been filled / is closed
+            if not len(answers):
+                return self.ChoiceFormResult.FormClosed
 
-        # Get input fields for form submission
-        answer_id = answers[0]["value"]
-        sesskey = get_assignment_soup.find("input", {"name": "sesskey"})["value"]
-        action = get_assignment_soup.find("input", {"name": "action"})["value"]
-        course_id = get_assignment_soup.find("input", {"name": "id"})["value"]
+            # There are more than one choice => notify without filling the form
+            if len(answers) >= 1:
+                return self.ChoiceFormResult.FormMultipleChoice
 
-        # Submit form with answer
-        choice_payload: dict = {
-            "answer": answer_id,
-            "sesskey": sesskey,
-            "action": action,
-            "id": course_id,
-        }
-        self.session.post(assignment_url, choice_payload)
-        return self.ChoiceFormResult.FormFilled
+            # Get input fields for form submission
+            answer_id = answers[0]["value"]
+            sesskey = get_assignment_soup.find("input", {"name": "sesskey"})["value"]
+            action = get_assignment_soup.find("input", {"name": "action"})["value"]
+            course_id = get_assignment_soup.find("input", {"name": "id"})["value"]
+
+            # Submit form with answer
+            choice_payload: dict = {
+                "answer": answer_id,
+                "sesskey": sesskey,
+                "action": action,
+                "id": course_id,
+            }
+
+            logging.info(
+                "Submitting form with answer id: %s, sesskey: %s, action: %s, course id: %s.",
+                answer_id, sesskey, action, course_id
+            )
+            post_assignment_res = self.session.post(assignment_url, choice_payload)
+            post_assignment_res.raise_for_status()
+            return self.ChoiceFormResult.FormFilled
+        except Exception as error:
+            logging.exception(error)
+            raise error
+        else:
+            logging.info("Successfully processed form: %s for user: %s.", assignment_url, self.username)

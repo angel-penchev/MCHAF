@@ -1,9 +1,10 @@
+import logging
 import urllib
 import notify2
 
 
 class Utils:
-    notify2.init("News Notifier")
+    notify2.init("Moodle Choice Auto-filler")
 
     @staticmethod
     def build_url(base_url: str, path: str, args_dict: dict = {}):
@@ -19,3 +20,4 @@ class Utils:
         n.set_timeout(10000)
         n.update(title, description)
         n.show()
+        logging.info("Sent notification with title: %s and description: %s.", title, description)
