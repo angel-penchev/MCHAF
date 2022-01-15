@@ -7,6 +7,9 @@ name = "pypi"
 beautifulsoup4 = "*"
 requests = "*"
 python-dotenv = "*"
+plyer = "*"
+notify2 = "*"
+dbus-python = "*"
 
 [dev-packages]
 
