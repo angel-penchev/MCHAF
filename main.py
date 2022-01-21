@@ -27,9 +27,41 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--interval", type=int, help="interval in minutes between checks")
     args = parser.parse_args()
 
-    with open('./config/logging.yaml', 'r') as stream:
-        config = yaml.load(stream, Loader=yaml.FullLoader)
-    logging.config.dictConfig(config)
+    logging.config.dictConfig({
+        "version": 1,
+        "formatters": {
+            'brief': {
+                'format': '%(message)s'
+            },
+            'default': {
+                'format': '[%(asctime)s] %(levelname)s : %(message)s'
+            }
+        },
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'brief',
+                'level': 'INFO',
+                'stream': 'ext://sys.stdout'
+            },
+            'file': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'formatter': 'default',
+                'level': 'INFO',
+                'filename': 'mchaf.log'
+            }
+        },
+        'loggers': {
+            'mainLogger': {
+                'level': 'INFO',
+                'handlers': ['console', 'file']
+            }
+        },
+        'root': {
+            'level': 'INFO',
+            'handlers': ['console', 'file']
+        }
+    })
 
     load_dotenv()
 
@@ -38,7 +70,7 @@ if __name__ == "__main__":
     MOODLE_DOMAIN = args.domain or os.getenv("MCHAF_MOODLE_DOMAIN")
     COURSE_ID = int(args.course or os.getenv("MCHAF_COURSE_ID"))
     CHOICE_TITLE_REGEX = args.regex or os.getenv("MCHAF_CHOICE_TITLE_REGEX")
-    NOTIFICATION_LEVEL = int(args.notification_level or os.getenv("MCHAF_NOTIFICATION_LEVEL") or 2)
+    NOTIFICATION_LEVEL = int(args.notification_level or os.getenv("MCHAF_NOTIFICATION_LEVEL") or 3)
     RUN_ONCE = bool(args.run_once or os.getenv("MCHAF_RUN_ONCE") or False)
     INTERVAL = int(args.interval or os.getenv("MCHAF_INTERVAL") or 15) * 60
 
@@ -50,13 +82,13 @@ if __name__ == "__main__":
     logging.info("""Application initialized with
         username: %s,
         moodle domain: %s,
-        course id: %s,
+        course id: %d,
         choice title regex: %s,
-        notification level: %s,
+        notification level: %d,
         run once: %s,
-        interval: %s.""",
-        USERNAME, MOODLE_DOMAIN, COURSE_ID, CHOICE_TITLE_REGEX, NOTIFICATION_LEVEL, RUN_ONCE, INTERVAL
-    )
+        interval: %d.""",
+                 USERNAME, MOODLE_DOMAIN, COURSE_ID, CHOICE_TITLE_REGEX, NOTIFICATION_LEVEL, RUN_ONCE, INTERVAL
+                 )
     app = MCHAF(USERNAME, PASSWORD, MOODLE_DOMAIN, COURSE_ID, CHOICE_TITLE_REGEX, NOTIFICATION_LEVEL)
 
     logging.info("[START] Moodle Choice Auto-filler.")
@@ -64,7 +96,7 @@ if __name__ == "__main__":
     logging.info("[END] Moodle Choice Auto-filler.")
 
     while not RUN_ONCE:
-        logging.info("Sleeping for %s seconds.", INTERVAL)
+        logging.info("Sleeping for %d seconds.", INTERVAL)
         sleep(INTERVAL)
         logging.info("[START] Moodle Choice Auto-filler.")
         app.run()

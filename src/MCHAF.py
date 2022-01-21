@@ -59,16 +59,16 @@ class MCHAF:
                     )
                     if re.match(self.choice_title_regex, assignment_title):
                         logging.info(
-                            "[START] Processing for assignment with name: %s in course %s",
+                            "[START] Processing for assignment with name: %s in course %d",
                             assignment_title, self.course_id
                         )
                         processing_results.append(self.process_choice_form(assignment.parent['href']))
                         logging.info(
-                            "[END] Processing for assignment with name: %s in course %s",
+                            "[END] Processing for assignment with name: %s in course %d",
                             assignment_title, self.course_id
                         )
             logging.info(
-                "[END] Processing for choice assignments for user %s in course: %s. %s %s. %s %s. %s %s.",
+                "[END] Processing for choice assignments for user %s in course: %d. %s %s. %s %s. %s %s.",
                 self.username, self.course_id,
                 processing_results.count(self.ChoiceFormResult.FormMultipleChoice),
                 self.ChoiceFormResult.FormMultipleChoice.value,
@@ -179,7 +179,7 @@ class MCHAF:
                 return self.ChoiceFormResult.FormClosed
 
             # There are more than one choice => notify without filling the form
-            if len(answers) >= 1:
+            if len(answers) > 1:
                 return self.ChoiceFormResult.FormMultipleChoice
 
             # Get input fields for form submission

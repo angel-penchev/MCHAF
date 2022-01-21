@@ -8,11 +8,11 @@ beautifulsoup4 = "*"
 requests = "*"
 python-dotenv = "*"
 plyer = "*"
-notify2 = "*"
-dbus-python = "*"
+py-notifier = "*"
 pyyaml = "*"
 
 [dev-packages]
+pyinstaller = "*"
 
 [requires]
 python_version = "3.10"

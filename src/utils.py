@@ -1,11 +1,10 @@
 import logging
 import urllib
-import notify2
+import pynotifier
+import site; print(''.join(site.getsitepackages()))
 
 
 class Utils:
-    notify2.init("Moodle Choice Auto-filler")
-
     @staticmethod
     def build_url(base_url: str, path: str, args_dict: dict = {}):
         url_parts = list(urllib.parse.urlparse(base_url))
@@ -15,9 +14,10 @@ class Utils:
 
     @staticmethod
     def send_notification(title: str, description: str):
-        n = notify2.Notification(None, None)
-        n.set_urgency(notify2.URGENCY_NORMAL)
-        n.set_timeout(10000)
-        n.update(title, description)
-        n.show()
+        pynotifier.Notification(
+            title,
+            description,
+            duration=10,
+            urgency='normal'
+        ).send()
         logging.info("Sent notification with title: %s and description: %s.", title, description)
