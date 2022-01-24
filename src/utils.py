@@ -1,8 +1,6 @@
 import logging
 import urllib
 import pynotifier
-import site; print(''.join(site.getsitepackages()))
-
 
 class Utils:
     @staticmethod

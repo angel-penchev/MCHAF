@@ -1,5 +1,4 @@
 import argparse
-import yaml
 import logging.config
 import os
 from time import sleep
@@ -27,57 +26,60 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--interval", type=int, help="interval in minutes between checks")
     args = parser.parse_args()
 
-    logging.config.dictConfig({
-        "version": 1,
-        "formatters": {
-            'brief': {
-                'format': '%(message)s'
-            },
-            'default': {
-                'format': '[%(asctime)s] %(levelname)s : %(message)s'
-            }
-        },
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-                'formatter': 'brief',
-                'level': 'INFO',
-                'stream': 'ext://sys.stdout'
-            },
-            'file': {
-                'class': 'logging.handlers.RotatingFileHandler',
-                'formatter': 'default',
-                'level': 'INFO',
-                'filename': 'mchaf.log'
-            }
-        },
-        'loggers': {
-            'mainLogger': {
-                'level': 'INFO',
-                'handlers': ['console', 'file']
-            }
-        },
-        'root': {
-            'level': 'INFO',
-            'handlers': ['console', 'file']
-        }
-    })
-
     load_dotenv()
 
     USERNAME = args.username or os.getenv("MCHAF_USERNAME")
     PASSWORD = args.password or os.getenv("MCHAF_PASSWORD")
     MOODLE_DOMAIN = args.domain or os.getenv("MCHAF_MOODLE_DOMAIN")
-    COURSE_ID = int(args.course or os.getenv("MCHAF_COURSE_ID"))
+    COURSE_ID = args.course or os.getenv("MCHAF_COURSE_ID")
     CHOICE_TITLE_REGEX = args.regex or os.getenv("MCHAF_CHOICE_TITLE_REGEX")
-    NOTIFICATION_LEVEL = int(args.notification_level or os.getenv("MCHAF_NOTIFICATION_LEVEL") or 3)
+    NOTIFICATION_LEVEL = int(args.notification_level or os.getenv("MCHAF_NOTIFICATION_LEVEL") or 2)
     RUN_ONCE = bool(args.run_once or os.getenv("MCHAF_RUN_ONCE") or False)
     INTERVAL = int(args.interval or os.getenv("MCHAF_INTERVAL") or 15) * 60
+
+    logging.config.dictConfig({
+        "version": 1,
+        "formatters": {
+            "brief": {
+                "format": "%(message)s"
+            },
+            "default": {
+                "format": "[%(asctime)s] %(levelname)s : %(message)s"
+            }
+        },
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "formatter": "brief",
+                "level": "INFO",
+                "stream": "ext://sys.stdout"
+            },
+            "file": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "encoding": "utf-8",
+                "formatter": "default",
+                "level": "INFO",
+                "filename": "mchaf.log"
+            }
+        },
+        "loggers": {
+            "mainLogger": {
+                "level": "INFO",
+                "handlers": ["console", "file"]
+            }
+        },
+        "root": {
+            "level": "INFO",
+            "handlers": ["console", "file"]
+        }
+    })
 
     if not USERNAME or not PASSWORD or not MOODLE_DOMAIN or not COURSE_ID or not CHOICE_TITLE_REGEX:
         error = AssertionError('Insufficient initialization parameters supplied.')
         logging.exception(error)
         raise error
+
+    COURSE_ID = int(COURSE_ID)
 
     logging.info("""Application initialized with
         username: %s,
