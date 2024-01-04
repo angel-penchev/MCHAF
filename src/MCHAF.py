@@ -199,6 +199,7 @@ class MCHAF:
             logging.info("Successfully loaded assignments in course: %s.", self.course_id)
 
     def process_choice_form(self, assignment_url: str):
+        logging.info("[START] Processing form: %s for user: %s.", assignment_url, self.username)
         try:
             # Get multiple choice page
             logging.info("Requesting multiple choice page: %s.", assignment_url)
@@ -239,9 +240,10 @@ class MCHAF:
             )
             post_assignment_res = self.session.post(assignment_url, choice_payload)
             post_assignment_res.raise_for_status()
+            logging.info("Successfully processed form: %s for user: %s.", assignment_url, self.username)
             return self.ChoiceFormResult.FormFilled
         except Exception as error:
             logging.exception(error)
             raise error
-        else:
-            logging.info("Successfully processed form: %s for user: %s.", assignment_url, self.username)
+        finally:
+            logging.info("[END] Processing form: %s for user: %s.", assignment_url, self.username)
