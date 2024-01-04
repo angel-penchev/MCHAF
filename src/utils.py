@@ -2,6 +2,7 @@ import logging
 import urllib
 import pynotifier
 
+
 class Utils:
     @staticmethod
     def build_url(base_url: str, path: str, args_dict: dict = {}):
