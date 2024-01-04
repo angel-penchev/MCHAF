@@ -6,6 +6,7 @@ from time import sleep
 from dotenv import load_dotenv
 
 from src.MCHAF import MCHAF
+from src.configuration_socket import start_server_thread
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -24,6 +25,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("-o", "--run-once", help="whether to check only once and exit", action="store_true")
     parser.add_argument("-i", "--interval", type=int, help="interval in minutes between checks")
+    parser.add_argument("-a", "--address", help="configuration socket server hostname address")
+    parser.add_argument("-t", "--port", type=int, help="configuration socket server port")
     args = parser.parse_args()
 
     load_dotenv()
@@ -36,6 +39,8 @@ if __name__ == "__main__":
     NOTIFICATION_LEVEL = int(args.notification_level or os.getenv("MCHAF_NOTIFICATION_LEVEL") or 2)
     RUN_ONCE = bool(args.run_once or os.getenv("MCHAF_RUN_ONCE") or False)
     INTERVAL = int(args.interval or os.getenv("MCHAF_INTERVAL") or 15) * 60
+    ADDRESS = args.address or os.getenv("MCHAF_ADDRESS") or "localhost"
+    PORT = int(args.port or os.getenv("MCHAF_PORT") or 0)
 
     logging.config.dictConfig({
         "version": 1,
@@ -88,10 +93,19 @@ if __name__ == "__main__":
         choice title regex: %s,
         notification level: %d,
         run once: %s,
-        interval: %d.""",
-                 USERNAME, MOODLE_DOMAIN, COURSE_ID, CHOICE_TITLE_REGEX, NOTIFICATION_LEVEL, RUN_ONCE, INTERVAL
+        interval: %d,
+        address: %s,
+        port: %d""",
+                 USERNAME, MOODLE_DOMAIN, COURSE_ID, CHOICE_TITLE_REGEX, NOTIFICATION_LEVEL, RUN_ONCE, INTERVAL, ADDRESS, PORT
                  )
     app = MCHAF(USERNAME, PASSWORD, MOODLE_DOMAIN, COURSE_ID, CHOICE_TITLE_REGEX, NOTIFICATION_LEVEL)
+
+    if not ADDRESS or not PORT or PORT == 0:
+        logging.info("Configuration socket server disabled.")
+    else:
+        logging.info("[START] Configuration socket server.")
+        start_server_thread(ADDRESS, PORT, app)
+        logging.info("[END] Configuration socket server.")
 
     logging.info("[START] Moodle Choice Auto-filler.")
     app.run()
