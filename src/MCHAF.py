@@ -31,6 +31,43 @@ class MCHAF:
         self.notification_level = notification_level
         self.session = None
 
+    # setters
+    def set_username(self, username: str):
+        logging.info("[START] Setting MCHAF username to: %s.", self.username)
+        self.username = username
+        logging.info("[END] Setting MCHAF username to: %s.", self.username)
+        return self
+
+    def set_password(self, password: str):
+        logging.info("[START] Setting MCHAF password.")
+        self.password = password
+        logging.info("[END] Setting MCHAF password.")
+        return self
+
+    def set_moodle_domain(self, moodle_domain: str):
+        logging.info("[START] Setting MCHAF moodle_domain to: %s.", self.moodle_domain)
+        self.moodle_domain = moodle_domain
+        logging.info("[END] Setting MCHAF moodle_domain to: %s.", self.moodle_domain)
+        return self
+
+    def set_course_id(self, course_id: int):
+        logging.info("[START] Setting MCHAF course_id to: %d.", self.course_id)
+        self.course_id = course_id
+        logging.info("[END] Setting MCHAF course_id to: %d.", self.course_id)
+        return self
+
+    def set_choice_title_regex(self, choice_title_regex: str):
+        logging.info("[START] Setting MCHAF choice_title_regex to: %s.", self.choice_title_regex)
+        self.choice_title_regex = choice_title_regex
+        logging.info("[END] Setting MCHAF choice_title_regex to: %s.", self.choice_title_regex)
+        return self
+
+    def set_notification_level(self, notification_level: int):
+        logging.info("[START] Setting MCHAF notification_level to: %d.", self.notification_level)
+        self.notification_level = notification_level
+        logging.info("[END] Setting MCHAF notification_level to: %d.", self.notification_level)
+        return self
+
     def run(self):
         with requests.session() as self.session:
             # Authenticate session with moodle login
